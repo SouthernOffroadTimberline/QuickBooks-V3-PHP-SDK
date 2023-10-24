@@ -802,13 +802,13 @@ class DataService
         $this->verifyOperationAccess($entity, __FUNCTION__);
         if ($this->isJsonOnly($entity)) {
             $this->forceJsonSerializers();
-        } 
+        }
 
         $httpsPostBody = $this->executeObjectSerializer($entity, $urlResource);
         // Builds resource Uri
         $resourceURI = implode(CoreConstants::SLASH_CHAR, array('company', $this->serviceContext->realmId, $urlResource));
 
-        $uri = $this->handleTaxService($entity, $resourceURI);        
+        $uri = $this->handleTaxService($entity, $resourceURI);
         // Send request
         return $this->sendRequestParseResponseBodyAndHandleHttpError($entity, $uri, $httpsPostBody, DataService::ADD);
     }
@@ -948,7 +948,7 @@ class DataService
             return $responseBody;
         } else {
             $this->lastError = false;
-            
+
             return $this->processDownloadedContent(new ContentWriter($responseBody), $responseCode, $dir, $this->getExportFileNameForPDF($entity, "pdf"));
         }
     }
@@ -1008,7 +1008,7 @@ class DataService
 
         $httpsUri = implode(CoreConstants::SLASH_CHAR, array('company', $this->serviceContext->realmId, 'query'));
         $httpsPostBody = $this->appendPaginationInfo($query, $startPosition, $maxResults);
-        
+
         if(!is_null($includes)) {
             $httpsUri .= "?include=$includes";
         }
@@ -1171,6 +1171,34 @@ class DataService
             $returnValue = new IntuitCDCResponse();
             try {
                 $xmlObj = simplexml_load_string($responseBody);
+                // ATTEMPT: to iterate over all the properties of XML Object and look for specifics
+                // (eg. ItemRef) to try and add a new Property for inline values such as "name".
+
+                // get all nodes via xpath
+                $xml = new \SimpleXMLElement($responseBody);
+                $nodes = $xml->xpath('//*');
+
+                array_walk($nodes, function(&$node, $nodeKey) {
+                    foreach($node->attributes() as $attributeKey => $attributeValue) {
+                        if ($attributeKey === 'name') {
+                            $node->{'ItemRefName'} = $attributeValue;
+                            // $nodes[$nodeKey] = $attributeValue;
+                            // dd($nodes[$nodeKey]);
+                        }
+
+                        var_dump($attributeKey, $attributeValue);
+                        var_dump('Node');
+                        // var_dump($node, $nodeKey);
+                    }
+
+                    // if (count($node)) return ;
+                    // $node[0] = strrev($node);
+                });
+                // echo $xml->asXML();
+
+                // dd($xml->asXML());
+                $xmlObj = $xml;
+
                 $responseArray = $xmlObj->CDCResponse->QueryResponse;
                 if(sizeof($responseArray) != sizeof($entityList)){
                     throw new ServiceException("The number of Entities requested on CDC does not match the number of Response.");
@@ -1178,15 +1206,29 @@ class DataService
 
                 for($i = 0; $i < sizeof($responseArray); $i++){
                     $currentResponse = $responseArray[$i];
+\Illuminate\Support\Facades\Log::info('$currentResponse');
+\Illuminate\Support\Facades\Log::info($currentResponse);
+
                     $currentEntityName = $entityList[$i];
+// THIS HAS THE inline values I need to insert into the XML Object as Attribute (e.g. <ItemRef name="blah blah"> should be ItemRefName="Blah Blah")
+// dd($currentResponse->asXML());
                     $entities = $this->responseSerializer->Deserialize($currentResponse->asXML(), false);
+// dd($entities);
                     $entityName = $currentEntityName;
+
+\Illuminate\Support\Facades\Log::info('$currentEntityName');
+\Illuminate\Support\Facades\Log::info($currentEntityName);
+
                     //If we find the actual name, update it.
                     foreach ($currentResponse->children() as $currentResponseChild) {
                         $entityName = (string)$currentResponseChild->getName();
+\Illuminate\Support\Facades\Log::info('$currentResponseChild');
+\Illuminate\Support\Facades\Log::info($currentResponseChild);
                         break;
                     }
                     $returnValue->entities[$entityName] = $entities;
+// \Illuminate\Support\Facades\Log::info('$returnValue->entities[$entityName]');
+// \Illuminate\Support\Facades\Log::info($returnValue->entities[$entityName]);
                 }
             } catch (\Exception $e) {
                 IdsExceptionManager::HandleException($e);
