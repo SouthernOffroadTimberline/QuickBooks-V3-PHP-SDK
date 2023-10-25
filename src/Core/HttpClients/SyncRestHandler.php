@@ -58,6 +58,11 @@ class SyncRestHandler extends RestHandler
     }
 
     /**
+     * Raw, unparsed response body data returned from request to HTTP Client.
+     */
+    protected $responseBody;
+
+    /**
      * Gets the http client interface
      * @return CurlHttpClient|HttpClientInterface
      */
@@ -213,6 +218,9 @@ class SyncRestHandler extends RestHandler
         }
 
         $intuitResponse = $this->httpClientInterface->makeAPICall($requestUri, $HttpMethod, $httpHeaders,  $requestBody, null, false);
+
+        $this->responseBody = $intuitResponse->getBody(); // provide access unformatted xml response body
+
         $faultHandler = $intuitResponse->getFaultHandler();
         $this->LogAPIResponseToLog($intuitResponse->getBody(), $requestUri, $intuitResponse->getHeaders());
 
