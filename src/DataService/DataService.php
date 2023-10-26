@@ -1182,21 +1182,10 @@ class DataService
                     foreach($node->attributes() as $attributeKey => $attributeValue) {
                         if ($attributeKey === 'name') {
                             $node->{'ItemRefName'} = $attributeValue;
-                            // $nodes[$nodeKey] = $attributeValue;
-                            // dd($nodes[$nodeKey]);
                         }
-
-                        var_dump($attributeKey, $attributeValue);
-                        var_dump('Node');
-                        // var_dump($node, $nodeKey);
                     }
-
-                    // if (count($node)) return ;
-                    // $node[0] = strrev($node);
                 });
-                // echo $xml->asXML();
 
-                // dd($xml->asXML());
                 $xmlObj = $xml;
 
                 $responseArray = $xmlObj->CDCResponse->QueryResponse;
@@ -1206,29 +1195,17 @@ class DataService
 
                 for($i = 0; $i < sizeof($responseArray); $i++){
                     $currentResponse = $responseArray[$i];
-\Illuminate\Support\Facades\Log::info('$currentResponse');
-\Illuminate\Support\Facades\Log::info($currentResponse);
-
                     $currentEntityName = $entityList[$i];
-// THIS HAS THE inline values I need to insert into the XML Object as Attribute (e.g. <ItemRef name="blah blah"> should be ItemRefName="Blah Blah")
-// dd($currentResponse->asXML());
-                    $entities = $this->responseSerializer->Deserialize($currentResponse->asXML(), false);
-// dd($entities);
-                    $entityName = $currentEntityName;
 
-\Illuminate\Support\Facades\Log::info('$currentEntityName');
-\Illuminate\Support\Facades\Log::info($currentEntityName);
+                    $entities = $this->responseSerializer->Deserialize($currentResponse->asXML(), false);
+                    $entityName = $currentEntityName;
 
                     //If we find the actual name, update it.
                     foreach ($currentResponse->children() as $currentResponseChild) {
                         $entityName = (string)$currentResponseChild->getName();
-\Illuminate\Support\Facades\Log::info('$currentResponseChild');
-\Illuminate\Support\Facades\Log::info($currentResponseChild);
                         break;
                     }
                     $returnValue->entities[$entityName] = $entities;
-// \Illuminate\Support\Facades\Log::info('$returnValue->entities[$entityName]');
-// \Illuminate\Support\Facades\Log::info($returnValue->entities[$entityName]);
                 }
             } catch (\Exception $e) {
                 IdsExceptionManager::HandleException($e);
