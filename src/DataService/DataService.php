@@ -1025,6 +1025,16 @@ class DataService
             $parsedResponseBody = null;
             try {
                 $responseXmlObj = simplexml_load_string($responseBody);
+                $xml = new \SimpleXMLElement($responseBody);
+                $nodes = $xml->xpath('//*');
+                array_walk($nodes, function(&$node, $nodeKey) {
+                    foreach($node->attributes() as $attributeKey => $attributeValue) {
+                        if ($attributeKey === 'name') {
+                            $node->{'ItemRefName'} = $attributeValue;
+                        }
+                    }
+                });
+                $responseXmlObj = $xml;
                 if ($responseXmlObj && $responseXmlObj->QueryResponse) {
                     $tmpXML = $responseXmlObj->QueryResponse->asXML();
                     $parsedResponseBody = $this->responseSerializer->Deserialize($tmpXML, false);
